@@ -122,7 +122,7 @@ def MainComputation(args):
 
   geometry, ymin_geom, ymax_geom, xmin_geom, xmax_geom = geometry_creation(Nx, Ny, obst_maxX, obst_maxY, cnt_x, cnt_y)
 
-  lim_x_low, lim_x_high  = cnt_x - Nx_sd //2.5, cnt_x + (Nx_sd -Nx_sd //2.5)
+  lim_x_low, lim_x_high  = int(cnt_x - Nx_sd //2.5), int(cnt_x + (Nx_sd -Nx_sd //2.5))
   lim_y_low, lim_y_high  = cnt_y - Ny_sd //2, cnt_y + (Ny_sd -Ny_sd //2)
 
   # Initilise the simulation
