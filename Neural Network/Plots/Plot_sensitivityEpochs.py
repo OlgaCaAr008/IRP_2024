@@ -1,0 +1,269 @@
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+project_folder = '/content/drive/My Drive/Colab Notebooks/ARCHER2_RUNS/results/epochs/10' # working folder path
+os.chdir(project_folder) # changing the path
+
+# Load training history data
+history_data = np.load('training_history_data.npz')
+
+epochs = history_data['epochs']
+loss = history_data['loss']
+val_loss = history_data['val_loss']
+velocity_x_mae = history_data['velocity_x_mae']
+val_velocity_x_mae = history_data['val_velocity_x_mae']
+velocity_y_mae = history_data['velocity_y_mae']
+val_velocity_y_mae = history_data['val_velocity_y_mae']
+density_mae = history_data['density_mae']
+val_density_mae = history_data['val_density_mae']
+
+import matplotlib as mpl
+
+# Increase default font size for all plot elements
+mpl.rcParams.update({'font.size': 20})
+
+plt.figure(figsize=(12, 6))
+plt.plot(epochs, loss, color='darkred', linestyle='-', label='Training Loss', alpha=0.8)  # Dark red solid line for training loss
+plt.plot(epochs, val_loss, color='salmon', linestyle='--', label='Validation Loss', alpha=0.8)  # Salmon dashed line for validation loss
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+plt.yscale('log')  # Logarithmic scale for loss
+plt.show()  # Display the figure
+
+plt.figure(figsize=(12, 6))
+plt.plot(epochs, density_mae, color='purple', linestyle='-', label='Training MAE (Density)', alpha=0.8)  # Purple solid line
+plt.plot(epochs, val_density_mae, color='violet', linestyle='--', label='Validation MAE (Density)', alpha=0.8)  # Violet dashed line
+plt.plot(epochs, velocity_x_mae, color='darkblue', linestyle='-', label='Training MAE (Velocity X)', alpha=0.8)  # Dark blue solid line
+plt.plot(epochs, val_velocity_x_mae, color='lightblue', linestyle='--', label='Validation MAE (Velocity X)', alpha=0.8)  # Light blue dashed line
+plt.plot(epochs, velocity_y_mae, color='darkgreen', linestyle='-', label='Training MAE (Velocity Y)', alpha=0.8)  # Dark green solid line
+plt.plot(epochs, val_velocity_y_mae, color='lightgreen', linestyle='--', label='Validation MAE (Velocity Y)', alpha=0.8)  # Light green dashed line
+
+plt.xlabel('Epochs')
+plt.ylabel('Mean Absolute Error')
+plt.legend()
+plt.grid(True)
+plt.yscale('log')  # Optional logarithmic scale for MAE
+plt.show()  # Display the figure
+
+# Load test scores
+test_scores = np.load('test_scores.npy')
+
+print('Total loss:',test_scores[0])
+print('Vx loss:',test_scores[1])
+print('Vy loss:',test_scores[2])
+print('Rho loss:',test_scores[3])
+print('Vx mea:',test_scores[4])
+print('Vy mea:',test_scores[5])
+print('Rho mea:',test_scores[6])
+
+project_folder = '/content/drive/My Drive/Colab Notebooks/ARCHER2_RUNS/results/epochs/10' # working folder path
+os.chdir(project_folder) # changing the path
+
+predictions10 = np.load('predictions.npy')
+Vx_test1 = np.load('Vx_test.npy')
+Vy_test1 = np.load('Vy_test.npy')
+Rho_test1 = np.load('Rho_test.npy')
+
+
+project_folder = '/content/drive/My Drive/Colab Notebooks/ARCHER2_RUNS/results/epochs/100' # working folder path
+os.chdir(project_folder) # changing the path
+
+predictions100 = np.load('predictions.npy')
+
+project_folder = '/content/drive/My Drive/Colab Notebooks/ARCHER2_RUNS/results/epochs/1000' # working folder path
+os.chdir(project_folder) # changing the path
+
+predictions1000 = np.load('predictions.npy')
+
+project_folder = '/content/drive/My Drive/Colab Notebooks/ARCHER2_RUNS/results/epochs/10000' # working folder path
+os.chdir(project_folder) # changing the path
+
+predictions10000 = np.load('predictions.npy')
+
+def compute_velocity_magnitude(vx, vy):
+    return np.sqrt(vx**2 + vy**2)
+def compute_mea(ground_truth,prediction):
+  absolute_errors = np.abs(ground_truth - prediction)
+  mae = np.mean(absolute_errors)
+  return mae
+
+predictions = predictions10000 # predictions10 predictions100 predictions1000 predictions10000
+Vx_test = Vx_test1
+Vy_test = Vy_test1
+Rho_test = Rho_test1
+
+mae_v = []
+mae_rho = []
+mre_v = []
+mre_rho = []
+
+for j in range(predictions[0].shape[0]):
+  predicted_vx = predictions[0][j].reshape(300, 300)
+  predicted_vy = predictions[1][j].reshape(300, 300)
+  predicted_velocity_magnitude = compute_velocity_magnitude(predicted_vx,predicted_vy)
+  original_velocity_magnitude = compute_velocity_magnitude(Vx_test[j,:].reshape(300, 300) , Vy_test[j,:].reshape(300, 300) )
+  predicted_rho = predictions[2][j].reshape(300, 300)
+  mae_v.append(compute_mea(original_velocity_magnitude,predicted_velocity_magnitude))
+  mae_rho.append(compute_mea(Rho_test[j,:].reshape(300, 300),predicted_rho))
+
+
+  # Compute MRE for velocity and density, ignoring infinities
+  mre_v_values = np.abs(original_velocity_magnitude - predicted_velocity_magnitude) / np.abs(original_velocity_magnitude)
+  mre_rho_values = np.abs(Rho_test[j, :].reshape(300, 300) - predicted_rho) / np.abs(Rho_test[j, :].reshape(300, 300))
+  mre_v_filtered = mre_v_values[np.isfinite(mre_v_values)]
+  mre_rho_filtered = mre_rho_values[np.isfinite(mre_rho_values)]
+
+  mre_v.append(np.mean(mre_v_filtered)*100)
+  mre_rho.append(np.mean(mre_rho_filtered)*100)
+
+print('MAE_vel:', np.mean(mae_v))
+print('MAE_rho:', np.mean(mae_rho))
+print('MRE_vel:', np.mean(mre_v))
+print('MRE_rho:', np.mean(mre_rho))
+print('STD_vel:',np.std(mae_v))
+print('STD_rho:',np.std(mae_rho))
+
+from scipy.stats import skew, kurtosis
+# Skweness
+print('skew_vel:', skew(mae_v))
+print('skew_rho:',skew(mae_rho))
+# kurtosis
+print('kurtosis_vel:',kurtosis(mae_v))
+print('kurtosis_rho:',kurtosis(mae_rho))
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.ticker import MaxNLocator
+
+mpl.rcParams.update({'font.size': 19})
+num_bins = 50  # Number of bins for the histogram
+
+# Create a figure and two subplots
+plt.figure(figsize=(14, 6))  # Adjusted width to 14 for better spacing
+
+# First subplot for mae_v
+plt.subplot(1, 2, 1)  # 1 row, 2 columns, first subplot
+plt.hist(mae_v, bins=num_bins, color='skyblue', edgecolor='black')
+plt.xlabel('MAE - Velocity')
+plt.ylabel('Frequency')
+
+# Second subplot for mae_rho
+plt.subplot(1, 2, 2)  # 1 row, 2 columns, second subplot
+plt.hist(mae_rho, bins=num_bins, color='salmon', edgecolor='black')
+plt.xlabel('MAE - Density')
+plt.ylabel('Frequency')
+plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=5))
+
+
+# Display the plots
+plt.tight_layout()  # Adjusts spacing to prevent overlap
+plt.show()
+
+index = 1
+
+predicted_vx10 = predictions10[0][index,:].reshape(300, 300)
+predicted_vy10 = predictions10[1][index,:].reshape(300, 300)
+predicted_rho10 = predictions10[2][index,:].reshape(300, 300)
+
+predicted_vx100 = predictions100[0][index,:].reshape(300, 300)
+predicted_vy100 = predictions100[1][index,:].reshape(300, 300)
+predicted_rho100 = predictions100[2][index,:].reshape(300, 300)
+
+predicted_vx1000 = predictions1000[0][index,:].reshape(300, 300)
+predicted_vy1000 = predictions1000[1][index,:].reshape(300, 300)
+predicted_rho1000 = predictions1000[2][index,:].reshape(300, 300)
+
+predicted_vx10000 = predictions10000[0][index,:].reshape(300, 300)
+predicted_vy10000 = predictions10000[1][index,:].reshape(300, 300)
+predicted_rho10000 = predictions10000[2][index,:].reshape(300, 300)
+
+original_velocity_magnitude = compute_velocity_magnitude(Vx_test1, Vy_test1)[index,:].reshape(300, 300)
+predicted_velocity_magnitude10 = compute_velocity_magnitude(predicted_vx10, predicted_vy10)
+predicted_velocity_magnitude100 = compute_velocity_magnitude(predicted_vx100, predicted_vy100)
+predicted_velocity_magnitude1000 = compute_velocity_magnitude(predicted_vx1000, predicted_vy1000)
+predicted_velocity_magnitude10000 = compute_velocity_magnitude(predicted_vx10000, predicted_vy10000)
+
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib as mpl
+
+# Increase default font size for all plot elements
+mpl.rcParams.update({'font.size': 20})
+
+index = 1
+
+# Setup figure and subplots for 5 images
+fig, axs = plt.subplots(1, 5, figsize=(25, 5))  # 1 row, 5 columns
+
+# Original Velocity Magnitude
+im1 = axs[0].imshow(original_velocity_magnitude, cmap='viridis',origin = 'lower')
+axs[0].set_title('Original')
+axs[0].axis('off')  # Hide axes for better visualization
+
+# Predicted Velocity Magnitudes at different iterations
+im2 = axs[1].imshow(predicted_velocity_magnitude10, cmap='viridis',origin = 'lower')
+axs[1].set_title('Predicted 10 epochs')
+axs[1].axis('off')
+
+im3 = axs[2].imshow(predicted_velocity_magnitude100, cmap='viridis',origin = 'lower')
+axs[2].set_title('Predicted 100 epochs')
+axs[2].axis('off')
+
+im4 = axs[3].imshow(predicted_velocity_magnitude1000, cmap='viridis',origin = 'lower')
+axs[3].set_title('Predicted 1000 epochs')
+axs[3].axis('off')
+
+im5 = axs[4].imshow(predicted_velocity_magnitude10000, cmap='viridis',origin = 'lower')
+axs[4].set_title('Predicted 10000 epochs')
+axs[4].axis('off')
+
+# Place a single colorbar at the bottom of the plots
+cbar_ax = fig.add_axes([0.15, -0.05, 0.7, 0.05])  # x-position, y-position, width, height
+fig.colorbar(im1, cax=cbar_ax, orientation='horizontal', fraction=0.012, pad=0.04, label='Velocity Magnitude')
+
+plt.tight_layout()
+plt.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib as mpl
+
+# Increase default font size for all plot elements
+mpl.rcParams.update({'font.size': 20})
+
+index = 1
+
+# Setup figure and subplots for 5 images
+fig, axs = plt.subplots(1, 5, figsize=(25, 5))  # 1 row, 5 columns
+
+# Original Velocity Magnitude
+im1 = axs[0].imshow(Rho_test1[index,:].reshape(300,300), cmap='viridis',origin = 'lower')
+axs[0].set_title('Original')
+axs[0].axis('off')  # Hide axes for better visualization
+
+# Predicted Velocity Magnitudes at different iterations
+im2 = axs[1].imshow(predicted_rho10, cmap='viridis',origin = 'lower')
+axs[1].set_title('Predicted 10 epochs')
+axs[1].axis('off')
+
+im3 = axs[2].imshow(predicted_rho100, cmap='viridis',origin = 'lower')
+axs[2].set_title('Predicted 100 epochs')
+axs[2].axis('off')
+
+im4 = axs[3].imshow(predicted_rho1000, cmap='viridis',origin = 'lower')
+axs[3].set_title('Predicted 1000 epochs')
+axs[3].axis('off')
+
+im5 = axs[4].imshow(predicted_rho10000, cmap='viridis',origin = 'lower')
+axs[4].set_title('Predicted 10000 epochs')
+axs[4].axis('off')
+
+# Place a single colorbar at the bottom of the plots
+cbar_ax = fig.add_axes([0.15, -0.05, 0.7, 0.05])  # x-position, y-position, width, height
+fig.colorbar(im1, cax=cbar_ax, orientation='horizontal', fraction=0.012, pad=0.04, label='Density')
+
+plt.tight_layout()
+plt.show()
