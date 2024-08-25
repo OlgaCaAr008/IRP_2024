@@ -1,0 +1,96 @@
+#!/bin/bash
+##
+## TensorFlow CONDA ENV submission script for PBS on DELTA
+## --------------------------------------------------------
+##
+## Follow the 6 steps below to configure your job
+## 
+## STEP 1:
+##
+## Enter a job name after the -N on the line below:
+##
+#PBS -N COMBINE_average
+##
+## STEP 2:
+##
+## Select the number of cpus/cores required by modifying the #PBS -l select line below
+##
+## Normally you select cpus in chunks of 64 cpus
+## The Maximum value for ncpus is 64 and mpiprocs MUST be the same value as ncpus.
+##
+## If more than 64 cpus are required then select multiple chunks of 64
+## e.g.	64 CPUs: select=1:ncpus=64:mpiprocs=64
+##	128 CPUs: select=2:ncpus=64:mpiprocs=64
+##	..etc..
+##
+#PBS -l select=1:ncpus=4:mpiprocs=4:ngpus=1:mem=32g
+##
+## STEP 3:
+##
+## Select the correct queue by modifying the #PBS -q line below
+##
+## half_hour	-  30 minutes
+## one_hour	-   1 hour
+## three_hour   -   3 hours
+## six_hour     -   6 hours
+## half_day	-  12 hours
+## one_day	-  24 hours
+## two_day	-  48 hours
+## five_day	- 120 hours
+## ten_day	- 240 hours (by special arrangement)
+##
+#PBS -q gpu_V100
+##
+#PBS -l walltime=24:00:00 
+## STEP 4:
+##
+## Replace the hpc@cranfield.ac.uk email address
+## with your Cranfield email address on the #PBS -M line below:
+## Your email address is NOT your username
+##
+#PBS -m abe 
+#PBS -M Olga.CatalanAragall.008@cranfield.ac.uk
+##
+## ====================================
+## DO NOT CHANGE THE LINES BETWEEN HERE
+## ====================================
+#PBS -j oe
+#PBS -W sandbox=PRIVATE
+#PBS -k n
+ln -s $PWD $PBS_O_WORKDIR/$PBS_JOBID
+## Change to working directory
+cd $PBS_O_WORKDIR
+## Calculate number of CPUs
+export cpus=`cat $PBS_NODEFILE | wc -l`
+## ========
+## AND HERE
+## ========
+##
+## STEP 5: 
+## 
+## Load the production USE
+module use /apps/modules/all
+##  Load the default application environment
+##  For a specific version add the version number, e.g.
+##
+module load CONDA/TensorFlow-2.12-GPU-Python-3.9
+##
+## Set CUDA Driver and path
+source $CONDA_PREFIX/etc/conda/activate.d/tf_env_vars.sh
+##
+## STEP 6: 
+## 
+## Run code 
+##
+## The main parameter to modify is your mpi program name
+## - change YOUR_EXECUTABLE to your own filename
+## 
+## This line is to check if GPU device is present
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+## 
+python run_av.py
+## Tidy up the log directory
+## DO NOT CHANGE THE LINE BELOW
+## ============================
+rm $PBS_O_WORKDIR/$PBS_JOBID
+#

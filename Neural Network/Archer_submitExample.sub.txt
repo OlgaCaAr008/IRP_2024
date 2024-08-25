@@ -1,0 +1,23 @@
+#!/bin/bash --login
+# Slurm job options (job-name, compute nodes, job time)
+#SBATCH --job-name=1st_run
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=128
+#SBATCH --cpus-per-task=1
+#SBATCH --time=40:00:0
+
+# Replace [budget code] below with your budget code (e.g. t01)
+#SBATCH --account=e01-Oxf-Jozsa
+#SBATCH --partition=standard
+#SBATCH --qos=long
+
+# Load the Python module, ...
+module load cray-python
+
+# Pass cpus-per-task setting to srun
+export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
+
+# Run your Python program
+#   Note that srun MUST be used to wrap the call to python,
+#   otherwise your code will run serially
+srun --distribution=block:block --hint=nomultithread python test1.py
